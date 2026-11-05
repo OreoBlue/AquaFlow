@@ -1,0 +1,102 @@
+[
+  {
+    "timestamp": 1793836800000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.8,
+    "outletLpm": 4.6,
+    "upstreamCm": 5.4,
+    "downstreamCm": 5.1,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836801000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.81,
+    "outletLpm": 4.61,
+    "upstreamCm": 5.408,
+    "downstreamCm": 5.106,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836802000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.82,
+    "outletLpm": 4.62,
+    "upstreamCm": 5.416,
+    "downstreamCm": 5.112,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836803000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.83,
+    "outletLpm": 4.63,
+    "upstreamCm": 5.424,
+    "downstreamCm": 5.118,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836804000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.84,
+    "outletLpm": 4.64,
+    "upstreamCm": 5.432,
+    "downstreamCm": 5.124,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836805000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.85,
+    "outletLpm": 4.65,
+    "upstreamCm": 5.44,
+    "downstreamCm": 5.13,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836806000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.86,
+    "outletLpm": 4.66,
+    "upstreamCm": 5.448,
+    "downstreamCm": 5.136,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836807000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.87,
+    "outletLpm": 4.67,
+    "upstreamCm": 5.456,
+    "downstreamCm": 5.142,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836808000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.88,
+    "outletLpm": 4.68,
+    "upstreamCm": 5.464,
+    "downstreamCm": 5.148,
+    "pumpOn": true,
+    "floatSafe": true
+  },
+  {
+    "timestamp": 1793836809000,
+    "sessionId": "DEMO-ONLY",
+    "inletLpm": 4.89,
+    "outletLpm": 4.69,
+    "upstreamCm": 5.472,
+    "downstreamCm": 5.154,
+    "pumpOn": true,
+    "floatSafe": true
+  }
+]

@@ -1,0 +1,19 @@
+digraph G {
+  graph [fontname="DejaVu Sans",rankdir=TB,bgcolor="#f6f9fc",pad=.4,nodesep=.35,ranksep=.6,label="AquaFlow • Rancangan komunikasi data",labelloc=t,fontsize=24,fontcolor="#15364b"];
+  node [fontname="DejaVu Sans",style="rounded,filled",shape=box,fillcolor="#ffffff",color="#9bb6c4",fontcolor="#1b3445",fontsize=13,margin=".22,.14"];
+  edge [color="#30768b",penwidth=1.7,arrowsize=.75,fontname="DejaVu Sans",fontsize=10];
+  sensors[label="Sensor: ultrasonik hulu/hilir\nflow inlet/outlet • float switch",fillcolor="#e2edff"];
+  esp[label="ESP32\nAkuisisi + validasi",fillcolor="#dceaf2"];
+  lock[label="Interlock lokal\nTIDAK bergantung Internet / ML",fillcolor="#ffe8d8"];
+  actuators[label="Pompa DC + servo (direncanakan)",fillcolor="#ffe8d8"];
+  telemetry[label="Firebase Realtime Database\n/latest + /history",fillcolor="#fff2ce"];
+  ml[label="Python inference service\nModel final dari tim ML",fillcolor="#d9f7f1"];
+  pred[label="Firebase\n/predictions/latest + /history",fillcolor="#fff2ce"];
+  ui[label="AquaFlow Dashboard\nJavaScript Frontend",fillcolor="#dceaf2"];
+  sensors->esp;esp->lock;lock->actuators;
+  esp->telemetry[label="Wi-Fi / HTTPS"];
+  telemetry->ml[label="Sensor window"];
+  ml->pred[label="3 kelas + timestamp"];
+  telemetry->ui[label="Telemetry"];
+  pred->ui[label="Hasil ML"];
+}

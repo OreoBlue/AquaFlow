@@ -1,0 +1,13 @@
+{
+  "description": "CONTOH KONTRAK - BELUM DISETUJUI TIM ML. Samakan preprocessing training dan inferensi.",
+  "model_version": "ganti-sesuai-hasil-training",
+  "window_samples": 10,
+  "hop_seconds": 5,
+  "sampling_hz": 1,
+  "feature_names": [
+    "inlet_mean", "outlet_mean", "upstream_mean", "downstream_mean",
+    "gap_mean", "flow_ratio_mean", "inlet_slope", "outlet_slope",
+    "upstream_slope", "downstream_slope"
+  ],
+  "labels": ["NORMAL", "ALIRAN_MASUK_TINGGI", "TERSUMBAT"]
+}

@@ -1,0 +1,48 @@
+{
+  "devices": {
+    "saluran-01": {
+      "latest": {
+        "timestamp": 1793249100000,
+        "sessionId": "sesi-uji-01",
+        "inletLpm": 4.82,
+        "outletLpm": 4.61,
+        "upstreamCm": 5.4,
+        "downstreamCm": 5.1,
+        "pumpOn": true,
+        "floatSafe": true
+      },
+      "history": {
+        "example-reading": {
+          "timestamp": 1793249100000,
+          "sessionId": "sesi-uji-01",
+          "inletLpm": 4.82,
+          "outletLpm": 4.61,
+          "upstreamCm": 5.4,
+          "downstreamCm": 5.1,
+          "pumpOn": true,
+          "floatSafe": true
+        }
+      },
+      "predictions": {
+        "latest": {
+          "timestamp": 1793249105000,
+          "sourceTimestamp": 1793249100000,
+          "label": "NORMAL",
+          "source": "model",
+          "modelVersion": "ISI_DARI_TIM_ML",
+          "confidence": null
+        },
+        "history": {
+          "example-prediction": {
+            "timestamp": 1793249105000,
+            "sourceTimestamp": 1793249100000,
+            "label": "NORMAL",
+            "source": "model",
+            "modelVersion": "ISI_DARI_TIM_ML",
+            "confidence": null
+          }
+        }
+      }
+    }
+  }
+}

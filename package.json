@@ -1,0 +1,11 @@
+{
+  "name": "aquaflow-dashboard-konsep-integrasi",
+  "version": "2.0.0-concept",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs",
+    "check": "node --check dist/app.js && node --check dist/config.js && node --check dist/data-model.js && node --check dist/demo-source.js && node --check dist/firebase-adapter.js && node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

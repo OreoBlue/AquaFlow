@@ -1,0 +1,10 @@
+{
+  "timestamp": 1793249100000,
+  "sessionId": "sesi-uji-01",
+  "inletLpm": 4.82,
+  "outletLpm": 4.61,
+  "upstreamCm": 5.4,
+  "downstreamCm": 5.1,
+  "pumpOn": true,
+  "floatSafe": true
+}

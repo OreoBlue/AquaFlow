@@ -1,0 +1,6 @@
+# Simpan variabel lingkungan secara lokal; jangan mengunggah service-account JSON ke GitHub.
+# GOOGLE_APPLICATION_CREDENTIALS=/path/private/service-account.json
+# FIREBASE_DATABASE_URL=https://<your-db>.firebaseio.com/
+# AQUAFLOW_DEVICE_ID=saluran-01
+# MODEL_PATH=/path/private/model_final.joblib
+# MODEL_CONTRACT_PATH=/path/private/model_contract.json

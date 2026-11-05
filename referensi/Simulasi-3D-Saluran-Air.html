@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulasi 3D Deteksi Sumbatan Saluran Air (Copy)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E4E9EC; --panel:#F7F9FA; --panel-2:#EDF1F3; --ink:#18252E; --ink-2:#51616C; --line:#CBD4DA;
+  --scene:#DCE3E7; --water:#2F86C6; --water-2:#86BEE6; --gate:#E2701A; --ok:#23925A; --warn:#B98408; --bad:#CC3333;
+  --flow:#3E4C56; --tag:rgba(255,255,255,.92); --on:#18252E; --on-ink:#F7F9FA;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#121A20; --panel:#18222A; --panel-2:#1F2B34; --ink:#E3E9ED; --ink-2:#9AAAB5; --line:#2B3943;
+    --scene:#1B262E; --water:#57A8E3; --water-2:#2E6E9E; --gate:#F08A3A; --ok:#3DBA78; --warn:#E3AE2E; --bad:#EE5A5A;
+    --flow:#B7C4CC; --tag:rgba(24,34,42,.92); --on:#E3E9ED; --on-ink:#18222A;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121A20; --panel:#18222A; --panel-2:#1F2B34; --ink:#E3E9ED; --ink-2:#9AAAB5; --line:#2B3943;
+  --scene:#1B262E; --water:#57A8E3; --water-2:#2E6E9E; --gate:#F08A3A; --ok:#3DBA78; --warn:#E3AE2E; --bad:#EE5A5A;
+  --flow:#B7C4CC; --tag:rgba(24,34,42,.92); --on:#E3E9ED; --on-ink:#18222A;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+html{ height:100%; scroll-padding-top:env(safe-area-inset-top,0px); background:var(--bg); }
+body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
+  font:15px/1.45 "Barlow","Segoe UI",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased; }
+button,input{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--water); outline-offset:2px; }
+
+.app{ display:grid; grid-template-columns:minmax(0,1fr) 400px; height:100%; }
+.stage{ position:relative; min-height:0; overflow:hidden; background:var(--scene); }
+#c{ display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
+#c:active{ cursor:grabbing; }
+#labels{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+
+.tag{ position:absolute; left:0; top:0; display:flex; align-items:center; gap:6px; white-space:nowrap;
+  font:600 12px/1.15 "Barlow Semi Condensed","Arial Narrow",sans-serif; color:var(--ink);
+  background:var(--tag); border:1px solid var(--line); border-radius:4px; padding:3px 7px 3px 3px; will-change:transform; }
+.tag b{ display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 3px; border-radius:3px; color:#fff; background:var(--c); font-weight:700; }
+.tag small{ font-weight:500; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.tag::after{ content:""; position:absolute; left:50%; bottom:-7px; width:1px; height:6px; background:var(--ink-2); }
+
+.bar{ position:absolute; top:10px; left:10px; right:10px; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; pointer-events:none; }
+.bar > *{ pointer-events:auto; }
+.grp{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:5px; overflow:hidden; background:var(--panel); }
+.seg button{ border:0; border-right:1px solid var(--line); background:transparent; padding:5px 10px; cursor:pointer;
+  font:500 13px/1.2 "Barlow Semi Condensed","Arial Narrow",sans-serif; }
+.seg button:last-child{ border-right:0; }
+.seg button[aria-pressed="true"]{ background:var(--on); color:var(--on-ink); }
+.btn{ border:1px solid var(--line); border-radius:5px; background:var(--panel); padding:5px 11px; cursor:pointer;
+  font:500 13px/1.2 "Barlow Semi Condensed","Arial Narrow",sans-serif; }
+.btn[aria-pressed="true"]{ background:var(--on); color:var(--on-ink); border-color:var(--on); }
+.clock{ font:600 13px/1 "Barlow Semi Condensed",sans-serif; font-variant-numeric:tabular-nums; background:var(--panel);
+  border:1px solid var(--line); border-radius:5px; padding:6px 9px; }
+
+.diag{ position:absolute; left:12px; bottom:12px; width:min(470px,calc(100% - 24px)); background:var(--panel);
+  border:1px solid var(--line); border-radius:6px; padding:12px 14px 12px 14px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
+.lamp{ width:14px; height:14px; border-radius:50%; margin-top:6px; background:var(--state,var(--ink-2));
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--state,var(--ink-2)) 22%, transparent); }
+.diag h2{ margin:0; font:700 21px/1.15 "Barlow Semi Condensed","Arial Narrow",sans-serif; letter-spacing:.005em; }
+.diag p{ grid-column:2; margin:0; color:var(--ink-2); font-size:14px; }
+.chips{ grid-column:2; display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.chips:empty{ display:none; }
+.chip{ font:600 12px/1 "Barlow Semi Condensed",sans-serif; padding:4px 7px; border-radius:3px; background:var(--panel-2); border:1px solid var(--line); }
+.chip.bad{ color:#fff; background:var(--bad); border-color:var(--bad); }
+.chip.warn{ color:#1d1600; background:var(--warn); border-color:var(--warn); }
+
+.panel{ overflow-y:auto; background:var(--panel); border-left:1px solid var(--line); padding:20px 22px 32px; }
+.panel h1{ margin:0 0 6px; font:700 25px/1.12 "Barlow Semi Condensed","Arial Narrow",sans-serif; }
+.panel .lede{ margin:0; color:var(--ink-2); max-width:62ch; }
+.panel section{ padding:16px 0; border-top:1px solid var(--line); }
+.panel header{ padding-bottom:16px; }
+.panel h3{ margin:0 0 10px; font:600 16px/1.2 "Barlow Semi Condensed","Arial Narrow",sans-serif; }
+.hint{ margin:6px 0 0; font-size:13px; color:var(--ink-2); }
+
+.scen{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.scen button{ text-align:left; border:1px solid var(--line); background:var(--panel-2); border-radius:6px; padding:9px 10px; cursor:pointer; }
+.scen button strong{ display:block; font:600 15px/1.2 "Barlow Semi Condensed",sans-serif; }
+.scen button span{ display:block; font-size:12.5px; color:var(--ink-2); margin-top:2px; }
+.scen button[aria-pressed="true"]{ border-color:var(--on); box-shadow:inset 0 0 0 1px var(--on); background:var(--panel); }
+
+.row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.slider{ display:grid; grid-template-columns:auto 1fr 3.4em; gap:10px; align-items:center; margin-top:10px; }
+.slider span{ font-size:14px; color:var(--ink-2); }
+.slider output{ text-align:right; font:600 15px/1 "Barlow Semi Condensed",sans-serif; font-variant-numeric:tabular-nums; }
+input[type=range]{ width:100%; accent-color:var(--water); }
+.slider.gate input{ accent-color:var(--gate); }
+.seg.full{ display:flex; margin-top:10px; }
+.seg.full button{ flex:1; padding:7px 6px; }
+.strong-num{ font:600 16px/1 "Barlow Semi Condensed",sans-serif; font-variant-numeric:tabular-nums; }
+.btns{ display:flex; gap:8px; margin-top:10px; }
+.btns .btn{ flex:1; padding:7px 10px; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+.gauges{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+.g{ background:var(--panel); padding:9px 11px; }
+.g .k{ font-size:13px; color:var(--ink-2); }
+.g .v{ font:600 26px/1.05 "Barlow Semi Condensed","Arial Narrow",sans-serif; font-variant-numeric:tabular-nums; margin-top:3px; }
+.g .v small{ font-size:14px; font-weight:500; color:var(--ink-2); margin-left:2px; }
+.g .s{ font-size:12.5px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.meter{ margin-top:14px; }
+.meter .row{ font-size:14px; }
+.meter .row span:first-child{ color:var(--ink-2); }
+.track{ position:relative; height:8px; border-radius:4px; background:var(--panel-2); border:1px solid var(--line); margin-top:6px; }
+.fill{ position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:var(--water); width:0; }
+.tick{ position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink); }
+.tick-lbl{ position:relative; height:16px; font-size:12px; color:var(--ink-2); }
+.tick-lbl span{ position:absolute; transform:translateX(-50%); top:2px; white-space:nowrap; }
+
+#chart{ display:block; width:100%; height:160px; }
+.legend{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:13px; color:var(--ink-2); }
+.legend i{ display:inline-block; width:16px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+
+.rules{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.rules li{ position:relative; padding:7px 10px 7px 26px; border-radius:5px; font-size:14px; color:var(--ink-2); border:1px solid transparent; }
+.rules li::before{ content:""; position:absolute; left:9px; top:13px; width:8px; height:8px; border-radius:50%; background:var(--line); }
+.rules li.on{ color:var(--ink); background:var(--panel-2); border-color:var(--line); }
+.rules li.on::before{ background:var(--c,var(--ok)); }
+details{ margin-top:12px; font-size:14px; }
+summary{ cursor:pointer; font-weight:600; }
+details ul{ margin:8px 0 0; padding-left:18px; color:var(--ink-2); }
+details li{ margin:3px 0; }
+.check{ display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; }
+#log{ list-style:none; margin:0; padding:0; font-size:13.5px; display:grid; gap:4px; }
+#log li{ display:grid; grid-template-columns:3.4em 1fr; gap:8px; }
+#log time{ color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.err{ position:absolute; inset:0; display:none; place-items:center; padding:24px; text-align:center; color:var(--ink-2); }
+
+@media (max-width:980px){
+  html,body{ height:auto; }
+  .app{ display:block; height:auto; }
+  .stage{ height:62svh; min-height:380px; }
+  .panel{ border-left:0; border-top:1px solid var(--line); overflow:visible; }
+}
+@media (max-width:560px){
+  .diag{ padding:9px 11px; }
+  .diag h2{ font-size:17px; }
+  .diag p{ font-size:13px; }
+  .seg button,.btn{ padding:5px 8px; font-size:12px; }
+  .panel{ padding:18px 16px 28px; }
+}
+@media (prefers-reduced-motion: reduce){ *{ scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="stage" aria-label="Model 3D miniatur saluran air">
+    <canvas id="c" tabindex="0" aria-label="Model 3D. Seret untuk memutar, gulir atau cubit untuk memperbesar, Shift+seret untuk menggeser. Tombol panah juga bisa dipakai."></canvas>
+    <div id="labels" aria-hidden="true"></div>
+    <div class="bar">
+      <div class="grp">
+        <div class="seg" role="group" aria-label="Sudut pandang">
+          <button data-view="iso" aria-pressed="true">Isometrik</button>
+          <button data-view="front" aria-pressed="false">Depan</button>
+          <button data-view="side" aria-pressed="false">Samping</button>
+          <button data-view="top" aria-pressed="false">Atas</button>
+        </div>
+        <button class="btn" id="tglLabels" aria-pressed="true">Label</button>
+        <button class="btn" id="tglBeams" aria-pressed="true">Sinar ultrasonik</button>
+      </div>
+      <div class="grp">
+        <span class="clock" id="clock">00:00</span>
+        <div class="seg" role="group" aria-label="Kecepatan simulasi">
+          <button data-speed="1" aria-pressed="false">1×</button>
+          <button data-speed="2" aria-pressed="true">2×</button>
+          <button data-speed="5" aria-pressed="false">5×</button>
+          <button data-speed="10" aria-pressed="false">10×</button>
+        </div>
+        <button class="btn" id="pause" aria-pressed="false">Jeda</button>
+        <button class="btn" id="reset">Ulang</button>
+      </div>
+    </div>
+    <div class="diag" id="diag" aria-live="polite">
+      <span class="lamp" aria-hidden="true"></span>
+      <h2 id="stTitle">Siaga</h2>
+      <p id="stReason">Menunggu aliran dari pompa.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="err" id="err">WebGL tidak tersedia di peramban ini, jadi model 3D tidak bisa ditampilkan. Panel kontrol dan logika deteksi tetap berjalan.</div>
+  </section>
+
+  <aside class="panel">
+    <header>
+      <h1>Deteksi sumbatan pada miniatur saluran air</h1>
+      <p class="lede">Atur debit pompa dan pasang sumbatan. ESP32 membandingkan tinggi air di hulu dan hilir serta debit masuk dan keluar, sehingga air yang naik karena aliran besar bisa dibedakan dari air yang naik karena saluran tersumbat.</p>
+    </header>
+
+    <section>
+      <h3>Skenario uji</h3>
+      <div class="scen">
+        <button data-scen="normal"><strong>Normal</strong><span>Pompa 45%, soket dilepas</span></button>
+        <button data-scen="inflow"><strong>Aliran masuk besar</strong><span>Pompa 100%, soket dilepas</span></button>
+        <button data-scen="partial"><strong>Tersumbat sebagian</strong><span>Pompa 45%, sumbatan 60%</span></button>
+        <button data-scen="total"><strong>Tersumbat total</strong><span>Pompa 45%, sumbatan 100%</span></button>
+      </div>
+    </section>
+
+    <section>
+      <div class="row">
+        <h3 style="margin:0">Pompa DC 12 V</h3>
+        <button class="btn" id="pumpBtn" aria-pressed="true">Pompa menyala</button>
+      </div>
+      <label class="slider"><span>Duty PWM</span><input type="range" id="duty" min="0" max="100" step="1" value="45"><output id="dutyOut">45%</output></label>
+      <p class="hint">Debit pompa sekarang <strong class="strong-num" id="pumpQ">0,0 L/min</strong>. Air mulai mengalir di atas 15% duty, maksimum 6 L/min.</p>
+    </section>
+
+    <section>
+      <h3>Soket sumbatan</h3>
+      <label class="slider gate"><span>Tingkat sumbatan</span><input type="range" id="block" min="0" max="100" step="1" value="0"><output id="blockOut">0%</output></label>
+      <div class="seg full" role="group" aria-label="Posisi soket sumbatan">
+        <button data-block="0" aria-pressed="true">Dilepas</button>
+        <button data-block="60" aria-pressed="false">Sebagian</button>
+        <button data-block="100" aria-pressed="false">Total</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Bak penampung</h3>
+      <div class="row"><span>Volume air <strong class="strong-num" id="tankV">25,0 L</strong></span><span>tinggi <strong class="strong-num" id="tankH">0 cm</strong></span></div>
+      <div class="btns"><button class="btn" id="drain">Kuras 5 L</button><button class="btn" id="fill">Tambah 5 L</button></div>
+      <p class="hint">Float switch mematikan pompa saat air bak di bawah 6 cm dan mengizinkan lagi di atas 7 cm.</p>
+    </section>
+
+    <section>
+      <h3>Pembacaan sensor</h3>
+      <div class="gauges">
+        <div class="g"><div class="k">Ultrasonik hulu</div><div class="v" id="gH">0,0<small>cm</small></div><div class="s" id="gHs">jarak 15,0 cm</div></div>
+        <div class="g"><div class="k">Ultrasonik hilir</div><div class="v" id="gL">0,0<small>cm</small></div><div class="s" id="gLs">jarak 15,0 cm</div></div>
+        <div class="g"><div class="k">Flow sensor inlet</div><div class="v" id="gI">0,0<small>L/min</small></div><div class="s" id="gIs">0 Hz</div></div>
+        <div class="g"><div class="k">Flow sensor outlet</div><div class="v" id="gO">0,0<small>L/min</small></div><div class="s" id="gOs">0 Hz</div></div>
+      </div>
+      <div class="meter">
+        <div class="row"><span>Selisih tinggi hulu dan hilir (Δh)</span><strong class="strong-num" id="mDh">0,0 cm</strong></div>
+        <div class="track"><div class="fill" id="fDh"></div><div class="tick" style="left:20%"></div></div>
+        <div class="tick-lbl"><span style="left:20%">batas 1,0 cm</span><span style="left:96%">5 cm</span></div>
+      </div>
+      <div class="meter">
+        <div class="row"><span>Debit keluar dibanding debit masuk</span><strong class="strong-num" id="mR">tidak terukur</strong></div>
+        <div class="track"><div class="fill" id="fR" style="background:var(--gate)"></div><div class="tick" style="left:41.67%"></div><div class="tick" style="left:83.33%"></div></div>
+        <div class="tick-lbl"><span style="left:41.67%">50%</span><span style="left:83.33%">100%</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h3>Grafik 2 menit terakhir</h3>
+      <canvas id="chart" role="img" aria-label="Grafik tinggi air hulu dan hilir serta debit masuk dan keluar"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--water)"></i>Tinggi hulu (cm)</span>
+        <span><i style="background:var(--water-2)"></i>Tinggi hilir (cm)</span>
+        <span><i style="background:var(--flow)"></i>Debit masuk (L/min)</span>
+        <span><i style="background:var(--gate)"></i>Debit keluar (L/min)</span>
+      </div>
+    </section>
+
+    <section>
+      <h3>Logika deteksi di ESP32</h3>
+      <ul class="rules">
+        <li data-r="interlock">Float switch membaca air bak rendah: pompa dimatikan (interlock).</li>
+        <li data-r="block">Hulu lebih tinggi dari hilir minimal 1,0 cm selama 2 detik: saluran tersumbat.</li>
+        <li data-r="total">Tersumbat, lalu debit keluar tidak terbaca atau hilir terus turun sementara hulu naik: sumbatan total.</li>
+        <li data-r="inflow">Hulu minimal 4,5 cm tetapi hulu dan hilir naik bersama: kenaikan karena aliran masuk besar.</li>
+        <li data-r="normal">Selain itu: aliran normal.</li>
+      </ul>
+      <details>
+        <summary>Model fisik yang dipakai simulasi</summary>
+        <ul>
+          <li>Debit pompa = 6 L/min × (duty − 15%) / 85%, dengan respon pompa orde satu (τ = 0,8 s).</li>
+          <li>Soket membagi saluran 60 × 8 × 10 cm menjadi ruas hulu dan hilir, luas permukaan tiap ruas 29,4 × 7,4 cm.</li>
+          <li>Debit lewat soket = K·f·(h<sub>hulu</sub> − h<sub>hilir</sub>), dengan bukaan f = (1 − sumbatan)³.</li>
+          <li>Debit keluar di ujung hilir = K<sub>o</sub>·h<sub>hilir</sub><sup>1,5</sup>, seperti ambang pelimpah.</li>
+          <li>Air di atas 10 cm meluap ke bak dan tidak lewat flow sensor outlet.</li>
+          <li>Ultrasonik JSN-SR04T dipasang 15 cm di atas dasar saluran, diberi derau ±0,1 cm dan filter EMA.</li>
+          <li>YF-S201: frekuensi pulsa = 7,5 × debit (L/min); di bawah 0,8 L/min dianggap tidak terbaca.</li>
+        </ul>
+      </details>
+      <label class="check"><input type="checkbox" id="buzz"> Bunyikan buzzer saat alarm</label>
+    </section>
+
+    <section>
+      <h3>Catatan kejadian</h3>
+      <ol id="log"></ol>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const mkNF = d => new Intl.NumberFormat('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const NF0 = mkNF(0), NF1 = mkNF(1), NF2 = mkNF(2);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= Model fisik ================= */
+const P = {
+  floorY:44, chH:10, inW:7.4, secLen:29.4,
+  Kg:333, fMin:0.002, Ko:6.8, Qmax:100, dz:0.15, tauPump:0.8,
+  tankX:-7, tankW:46, tankD:36, tankBottomY:2.4, tankH:27.6,
+  floatLow:6, floatHigh:7, usMount:15,
+  dhTh:1.0, levelHigh:4.5, levelHighOff:4.2, persist:2.0, flowMin:0.8
+};
+P.A = P.inW * P.secLen;
+P.tankArea = (P.tankW - 0.8) * (P.tankD - 0.8);
+
+const C = { duty:45, pumpOn:true, block:0, speed:2, paused:false, labels:true, beams:true, buzzer:false };
+const S = {};
+const R = {};
+let chartBuf = [];
+
+function resetSim(){
+  Object.assign(S, { t:0, h1:0, h2:0, Qin:0, Q12:0, Qout:0, spill1:0, spill2:0, interlock:false, vTank:25000 });
+  Object.assign(R, { dH:P.usMount, dL:P.usMount, lvH:0, lvL:0, qi:0, qo:0, hzI:0, hzO:0, dh:0, ratio:null,
+    state:'idle', cand:null, candN:0, blockTimer:0, verifying:false, overflow:false, hist:[], first:true, interlock:false });
+  chartBuf = [];
+  $('#log').innerHTML = '';
+}
+
+function physics(dt){
+  const hT = S.vTank / P.tankArea;
+  if (hT < P.floatLow) S.interlock = true; else if (hT > P.floatHigh) S.interlock = false;
+  const u = C.duty / 100;
+  let target = (C.pumpOn && !S.interlock) ? P.Qmax * Math.max(0, (u - P.dz) / (1 - P.dz)) : 0;
+  if (hT < 0.8) target = 0;
+  S.Qin += (target - S.Qin) * Math.min(1, dt / P.tauPump);
+  const f = Math.max(P.fMin, Math.pow(1 - C.block, 3));
+  S.Q12 = P.Kg * f * (S.h1 - S.h2);
+  S.Qout = P.Ko * Math.pow(Math.max(S.h2, 0), 1.5);
+  S.h1 += (S.Qin - S.Q12) * dt / P.A;
+  S.h2 += (S.Q12 - S.Qout) * dt / P.A;
+  if (S.h1 < 0) S.h1 = 0;
+  if (S.h2 < 0) S.h2 = 0;
+  let sp1 = 0, sp2 = 0;
+  if (S.h1 > P.chH){ sp1 = (S.h1 - P.chH) * P.A; S.h1 = P.chH; }
+  if (S.h2 > P.chH){ sp2 = (S.h2 - P.chH) * P.A; S.h2 = P.chH; }
+  const k = Math.min(1, dt / 0.4);
+  S.spill1 += (sp1 / dt - S.spill1) * k;
+  S.spill2 += (sp2 / dt - S.spill2) * k;
+  S.vTank = clamp(S.vTank + (S.Qout - S.Qin) * dt + sp1 + sp2, 0, P.tankArea * P.tankH);
+  S.t += dt;
+}
+
+const noise = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.12;
+
+function sample(){
+  R.dH += (P.usMount - S.h1 + noise() - R.dH) * 0.35;
+  R.dL += (P.usMount - S.h2 + noise() - R.dL) * 0.35;
+  R.lvH = Math.max(0, P.usMount - R.dH);
+  R.lvL = Math.max(0, P.usMount - R.dL);
+  const qi = S.Qin * 0.06 * (1 + noise() * 0.12);
+  const qo = S.Qout * 0.06 * (1 + noise() * 0.12);
+  R.qi = qi < P.flowMin ? 0 : qi;
+  R.qo = qo < P.flowMin ? 0 : qo;
+  R.hzI = 7.5 * R.qi; R.hzO = 7.5 * R.qo;
+}
+
+const STATES = {
+  idle:    { title:'Siaga', lamp:'--ink-2', lcd:'SIAGA' },
+  normal:  { title:'Aliran normal', lamp:'--ok', lcd:'NORMAL' },
+  inflow:  { title:'Air naik karena aliran masuk besar', lamp:'--water', lcd:'ALIRAN BESAR' },
+  partial: { title:'Saluran tersumbat sebagian', lamp:'--warn', lcd:'SUMBAT SEBAGIAN' },
+  total:   { title:'Saluran tersumbat total', lamp:'--bad', lcd:'SUMBAT TOTAL' }
+};
+
+function detect(){
+  const dh = R.lvH - R.lvL;
+  R.dh = dh;
+  R.ratio = R.qi > 0 ? R.qo / R.qi : null;
+  R.hist.push([R.lvH, R.lvL]);
+  if (R.hist.length > 12) R.hist.shift();
+  const k = Math.min(8, R.hist.length - 1);
+  const sH = k ? (R.lvH - R.hist[R.hist.length - 1 - k][0]) / (k * 0.5) : 0;
+  const sL = k ? (R.lvL - R.hist[R.hist.length - 1 - k][1]) / (k * 0.5) : 0;
+  R.sH = sH; R.sL = sL;
+
+  if (dh >= P.dhTh) R.blockTimer += 0.5; else R.blockTimer = 0;
+  R.verifying = dh >= P.dhTh && R.blockTimer < P.persist;
+
+  let st;
+  if (R.blockTimer >= P.persist){
+    const enter = (R.qo === 0 && sL <= 0.02) || (sH > 0.06 && sL < -0.06 && R.qo < 0.6 * R.qi);
+    const stay = R.state === 'total' && (R.qo === 0 || R.qo < 0.5 * R.qi) && sL <= 0.08;
+    st = (enter || stay) ? 'total' : 'partial';
+  } else if (R.lvH >= (R.state === 'inflow' ? P.levelHighOff : P.levelHigh)) st = 'inflow';
+  else if (R.qi === 0 && dh < P.dhTh) st = 'idle';
+  else st = 'normal';
+
+  if (st === R.state){ R.cand = null; R.candN = 0; }
+  else {
+    if (st === R.cand) R.candN++; else { R.cand = st; R.candN = 1; }
+    if (R.candN >= 2 || R.first){
+      const prev = R.state; R.state = st; R.cand = null; R.candN = 0;
+      if (!R.first || st !== 'idle') logStateChange(prev, st);
+    }
+  }
+  R.first = false;
+
+  const ov = S.spill1 > 1 || S.spill2 > 1;
+  if (ov && !R.overflow) log('Air meluap dari saluran ' + (S.spill1 > 1 ? 'hulu' : 'hilir') + ' ke bak.', 'bad');
+  R.overflow = ov;
+  if (S.interlock !== R.interlock){
+    log(S.interlock ? 'Float switch: air bak rendah, pompa dimatikan.' : 'Float switch: air bak cukup, pompa diizinkan lagi.', S.interlock ? 'bad' : '');
+    R.interlock = S.interlock;
+  }
+}
+
+function logStateChange(prev, st){
+  const m = {
+    idle:'Status siaga, tidak ada aliran terbaca.',
+    normal:'Aliran normal.',
+    inflow:'Kenaikan air karena aliran masuk besar, bukan sumbatan.',
+    partial:'Sumbatan sebagian terdeteksi (Δh ' + NF1.format(R.dh) + ' cm).',
+    total:'Sumbatan total terdeteksi, debit keluar ' + NF1.format(R.qo) + ' L/min.'
+  };
+  log(m[st], st === 'total' ? 'bad' : '');
+}
+
+function reasonText(){
+  const dh = NF1.format(Math.max(0, R.dh));
+  const pct = R.ratio == null ? null : Math.round(R.ratio * 100);
+  switch (R.state){
+    case 'idle':
+      return S.interlock ? 'Pompa dimatikan float switch. Isi bak agar pompa bisa berjalan lagi.'
+        : (C.pumpOn && S.Qin > 1 ? 'Debit pompa di bawah batas ukur flow sensor (0,8 L/min).' : 'Pompa tidak mengalirkan air. Sisa air di saluran mengalir keluar.');
+    case 'normal':
+      return 'Hulu ' + NF1.format(R.lvH) + ' cm dan hilir ' + NF1.format(R.lvL) + ' cm hampir sama (Δh ' + dh + ' cm), debit keluar mengikuti debit masuk.';
+    case 'inflow':
+      return 'Hulu dan hilir naik bersama (Δh hanya ' + dh + ' cm)' + (pct != null ? ' dan debit keluar ' + pct + '% dari debit masuk' : '') + '. Air tinggi karena pompa besar, saluran tidak tersumbat.';
+    case 'partial':
+      return 'Air tertahan di depan soket: hulu ' + dh + ' cm lebih tinggi dari hilir' + (pct != null ? ', debit keluar ' + pct + '% dari debit masuk' : '') + '. Kenaikan ini tidak sebanding dengan debit masuk ' + NF1.format(R.qi) + ' L/min.';
+    case 'total':
+      return 'Hulu naik ke ' + NF1.format(R.lvH) + ' cm sementara hilir turun ke ' + NF1.format(R.lvL) + ' cm dan debit keluar ' + (R.qo === 0 ? 'tidak terbaca' : NF1.format(R.qo) + ' L/min') + '. Aliran tertahan hampir seluruhnya.';
+  }
+  return '';
+}
+
+/* ================= Log ================= */
+function mmss(t){ const s = Math.floor(t); return String(Math.floor(s / 60)).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0'); }
+function log(text){
+  const li = document.createElement('li');
+  li.innerHTML = '<time>' + mmss(S.t || 0) + '</time><span></span>';
+  li.lastChild.textContent = text;
+  const ol = $('#log');
+  ol.insertBefore(li, ol.firstChild);
+  while (ol.children.length > 10) ol.removeChild(ol.lastChild);
+}
+
+/* ================= 3D ================= */
+const canvas = $('#c');
+let renderer = null;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+} catch(e){ renderer = null; }
+const has3D = !!renderer && typeof THREE !== 'undefined';
+if (!has3D){ $('#err').style.display = 'grid'; }
+
+const scene = has3D ? new THREE.Scene() : null;
+const camera = has3D ? new THREE.PerspectiveCamera(36, 1, 1, 3000) : null;
+const V = (x,y,z) => new THREE.Vector3(x,y,z);
+const G = {};
+
+function buildScene(){
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x6b5b4a, 0.78));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.72);
+  sun.position.set(70, 150, 95); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left:-95, right:95, top:95, bottom:-95, near:20, far:400 });
+  sun.shadow.bias = -0.0006;
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xd6e8ff, 0.32); fill.position.set(-90, 60, -50); scene.add(fill);
+
+  const M = {
+    alu: new THREE.MeshStandardMaterial({ color:0xc8cfd5, metalness:0.28, roughness:0.42 }),
+    acrylic: new THREE.MeshStandardMaterial({ color:0xe6f6ff, transparent:true, opacity:0.15, roughness:0.05, depthWrite:false, side:THREE.DoubleSide }),
+    cont: new THREE.MeshStandardMaterial({ color:0xd7ecff, transparent:true, opacity:0.13, roughness:0.08, depthWrite:false, side:THREE.DoubleSide }),
+    water: new THREE.MeshStandardMaterial({ color:0x2b86d0, transparent:true, opacity:0.5, roughness:0.12, depthWrite:false }),
+    tankWater: new THREE.MeshStandardMaterial({ color:0x3b93d6, transparent:true, opacity:0.38, roughness:0.12, depthWrite:false }),
+    hose: new THREE.MeshStandardMaterial({ color:0x2c72d4, transparent:true, opacity:0.62, roughness:0.4, depthWrite:false }),
+    black: new THREE.MeshStandardMaterial({ color:0x1d2024, roughness:0.62 }),
+    pcb: new THREE.MeshStandardMaterial({ color:0x1f4fae, roughness:0.5 }),
+    silver: new THREE.MeshStandardMaterial({ color:0xd3d7db, metalness:0.75, roughness:0.28 }),
+    orange: new THREE.MeshStandardMaterial({ color:0xe8731c, roughness:0.45 }),
+    grey: new THREE.MeshStandardMaterial({ color:0xa5abb1, roughness:0.62 }),
+    greyD: new THREE.MeshStandardMaterial({ color:0x6f767d, roughness:0.6 }),
+    wood: new THREE.MeshStandardMaterial({ color:0x86664a, roughness:0.85 }),
+    yellow: new THREE.MeshStandardMaterial({ color:0xf2c21a, roughness:0.4 }),
+    brass: new THREE.MeshStandardMaterial({ color:0xb8913f, metalness:0.6, roughness:0.35 }),
+    red: new THREE.MeshStandardMaterial({ color:0xc62a2a, roughness:0.5 }),
+    pvc: new THREE.MeshStandardMaterial({ color:0xdfe3e6, roughness:0.5 }),
+    rimBlue: new THREE.MeshStandardMaterial({ color:0x2e66c9, roughness:0.5 }),
+    gate: new THREE.MeshStandardMaterial({ color:0x3a4650, transparent:true, opacity:0.82, roughness:0.3 }),
+    plate: new THREE.MeshStandardMaterial({ color:0x5c636a, roughness:0.7 })
+  };
+  G.M = M;
+
+  const add = (m, parent) => { (parent || scene).add(m); return m; };
+  const box = (w,h,d,mat,x,y,z,parent) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+    m.position.set(x,y,z);
+    if (!mat.transparent){ m.castShadow = true; }
+    m.receiveShadow = true;
+    return add(m, parent);
+  };
+  const cyl = (rt,rb,h,mat,x,y,z,axis,parent,seg) => {
+    const g = new THREE.CylinderGeometry(rt,rb,h,seg || 24);
+    if (axis === 'x') g.rotateZ(Math.PI/2);
+    if (axis === 'z') g.rotateX(Math.PI/2);
+    const m = new THREE.Mesh(g, mat); m.position.set(x,y,z);
+    if (!mat.transparent) m.castShadow = true;
+    return add(m, parent);
+  };
+  const edges = (mesh, color, op) => {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: color || 0xffffff, transparent:true, opacity: op == null ? 0.5 : op }));
+    e.position.copy(mesh.position); e.rotation.copy(mesh.rotation);
+    (mesh.parent || scene).add(e); return e;
+  };
+
+  // meja
+  box(160, 4, 96, M.wood, 2, -2, 0);
+
+  // rangka aluminium 2020
+  const railEdge = 0x7e868d;
+  [-20.5, 20.5].forEach(z => edges(box(64, 2, 2, M.alu, 0, 1, z), railEdge, 0.55));
+  [-31, 31].forEach(x => edges(box(2, 2, 39, M.alu, x, 1, 0), railEdge, 0.55));
+  [-31, 31].forEach(x => [-20.5, 20.5].forEach(z => edges(box(2, 39.7, 2, M.alu, x, 2 + 39.7/2, z), railEdge, 0.55)));
+  [-20.5, 20.5].forEach(z => edges(box(64, 2, 2, M.alu, 0, 42.7, z), railEdge, 0.55));
+  [-31, -20, 20, 31].forEach(x => edges(box(2, 2, 39, M.alu, x, 42.7, 0), railEdge, 0.55));
+  [-5, 5].forEach(z => edges(box(60, 2, 2, M.alu, 0, 42.7, z), railEdge, 0.55));
+  box(62, 0.4, 41, M.plate, 0, 1.8, 0);
+  // tiang sensor ultrasonik
+  [-20, 20].forEach(x => {
+    edges(box(2, 18.3, 2, M.alu, x, 43.7 + 9.15, -9), railEdge, 0.55);
+    edges(box(2, 2, 11, M.alu, x, 61, -4.5), railEdge, 0.55);
+  });
+
+  // kotak kontainer
+  const cx = P.tankX, cw = P.tankW, cd = P.tankD, cy0 = 2, ch = 28;
+  box(cw, 0.4, cd, M.cont, cx, cy0 + 0.2, 0);
+  [-1, 1].forEach(s => box(cw, ch, 0.4, M.cont, cx, cy0 + ch/2, s * (cd/2 - 0.2)));
+  [-1, 1].forEach(s => box(0.4, ch, cd - 0.8, M.cont, cx + s * (cw/2 - 0.2), cy0 + ch/2, 0));
+  const outline = new THREE.Mesh(new THREE.BoxGeometry(cw, ch, cd)); outline.position.set(cx, cy0 + ch/2, 0);
+  edges(outline, 0xffffff, 0.55);
+  [-1, 1].forEach(s => box(cw + 1, 0.9, 1, M.rimBlue, cx, cy0 + ch, s * cd/2));
+  [-1, 1].forEach(s => box(1, 0.9, cd, M.rimBlue, cx + s * cw/2, cy0 + ch, 0));
+  const twGeo = new THREE.BoxGeometry(1,1,1); twGeo.translate(0, 0.5, 0);
+  G.tankWater = new THREE.Mesh(twGeo, M.tankWater);
+  G.tankWater.position.set(cx, P.tankBottomY, 0);
+  G.tankWater.scale.set(cw - 0.8, 1, cd - 0.8);
+  G.tankWater.renderOrder = 1;
+  scene.add(G.tankWater);
+
+  // pompa
+  G.pump = new THREE.Group(); G.pump.position.set(-23, P.tankBottomY, 0); scene.add(G.pump);
+  box(6, 5, 5, M.black, 0, 2.5, 0, G.pump);
+  box(6.2, 0.6, 5.2, M.greyD, 0, 0.3, 0, G.pump);
+  for (let i = -2; i <= 2; i++) box(0.25, 2.6, 0.1, M.greyD, i * 1.1, 2.2, 2.55, G.pump);
+  cyl(0.7, 0.7, 2.8, M.black, 0, 6.3, 0, 'y', G.pump);
+
+  // saluran akrilik
+  const fy = P.floorY;
+  edges(box(60, 0.3, 8, M.acrylic, 0, fy - 0.15, 0));
+  [-1, 1].forEach(s => edges(box(60, 10, 0.3, M.acrylic, 0, fy + 5, s * 3.85)));
+  [-1, 1].forEach(s => edges(box(0.3, 10, 7.4, M.acrylic, s * 29.85, fy + 5, 0)));
+  const wGeo = () => { const g = new THREE.BoxGeometry(1,1,1); g.translate(0, 0.5, 0); return g; };
+  G.upW = new THREE.Mesh(wGeo(), M.water); G.upW.position.set(-15, fy, 0); G.upW.scale.set(29.4, 0.01, 7.4); scene.add(G.upW);
+  G.dnW = new THREE.Mesh(wGeo(), M.water); G.dnW.position.set(15, fy, 0); G.dnW.scale.set(29.4, 0.01, 7.4); scene.add(G.dnW);
+  G.upW.renderOrder = G.dnW.renderOrder = 2;
+
+  // soket sumbatan
+  [-1, 1].forEach(s => box(1.4, 14, 0.6, M.black, 0, fy + 7, s * 4.35));
+  box(1.6, 0.8, 9.9, M.black, 0, fy + 14.4, 0);
+  G.gate = new THREE.Group(); scene.add(G.gate);
+  const gp = box(0.6, 12, 7.3, M.gate, 0, 6, 0, G.gate); gp.renderOrder = 3;
+  edges(gp, 0x9aa6b0, 0.6);
+  cyl(0.25, 0.25, 2.2, M.silver, 0, 13.1, 0, 'y', G.gate);
+  cyl(1.15, 1.15, 1.3, M.orange, 0, 14.6, 0, 'y', G.gate, 28);
+
+  // flow sensor YF-S201
+  function flowSensor(x, y){
+    const g = new THREE.Group(); g.position.set(x, y, 0); scene.add(g);
+    cyl(1.35, 1.35, 4.8, M.black, 0, 0, 0, 'x', g);
+    cyl(0.75, 0.75, 0.9, M.brass, -2.85, 0, 0, 'x', g);
+    cyl(0.75, 0.75, 0.9, M.brass, 2.85, 0, 0, 'x', g);
+    cyl(1.38, 1.38, 0.7, M.red, 0, 0, 0, 'x', g);
+    box(2.6, 1.4, 2.1, M.black, 0, 1.25, 0, g);
+    cyl(0.75, 0.75, 0.12, M.greyD, 0, 2.0, 0, 'y', g);
+    const blade = box(1.3, 0.12, 0.22, M.pvc, 0, 2.1, 0, g);
+    return { g, blade };
+  }
+  G.fsIn = flowSensor(-35, 47);
+  G.fsOut = flowSensor(35, 46);
+  cyl(0.7, 0.7, 2.6, M.pvc, -31.3, 47, 0, 'x');
+  cyl(0.7, 0.7, 2.6, M.pvc, 31.3, 46, 0, 'x');
+
+  // selang
+  G.inCurve = new THREE.CatmullRomCurve3([V(-23,10.4,0), V(-23,20,0), V(-24.5,29,0), V(-28,33.5,0), V(-33,37,0), V(-37.5,41.5,0), V(-38.7,45.4,0), V(-37.6,47,0)]);
+  G.outCurve = new THREE.CatmullRomCurve3([V(37.6,46,0), V(38.9,44,-0.6), V(38.6,39,-3), V(35,34.5,-6), V(26,32,-7), V(16,31.4,-7), V(11,28.6,-7), V(10.5,25,-7)]);
+  [G.inCurve, G.outCurve].forEach(cv => { const m = new THREE.Mesh(new THREE.TubeGeometry(cv, 140, 0.62, 12, false), M.hose); m.renderOrder = 4; scene.add(m); });
+  // kabel pompa
+  const cable = new THREE.CatmullRomCurve3([V(-21.5,7.3,1.6), V(-19,20,5), V(-15,30.6,12), V(-4,31.6,18.3), V(12,25,19.4), V(18.6,13,18.4)]);
+  const cm = new THREE.Mesh(new THREE.TubeGeometry(cable, 80, 0.25, 8, false), M.black); cm.castShadow = true; scene.add(cm);
+  const cable2 = new THREE.CatmullRomCurve3([V(26,17.2,15.5), V(29.5,30,10), V(30,41,-1), V(22,45,-9), V(20.8,58,-9.6)]);
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(cable2, 80, 0.22, 8, false), M.black));
+
+  // ultrasonik JSN-SR04T
+  function ultrasonic(x){
+    const g = new THREE.Group(); g.position.set(x, 0, 0); scene.add(g);
+    box(4.6, 0.2, 2.1, M.pcb, 0, 59.9, 0, g);
+    [-1.3, 1.3].forEach(dx => {
+      cyl(0.82, 0.82, 0.8, M.silver, dx, 59.4, 0, 'y', g);
+      cyl(0.62, 0.62, 0.04, M.black, dx, 59.0, 0, 'y', g);
+    });
+    const beamGeo = new THREE.CylinderGeometry(0.9, 2.6, 1, 24, 1, true); beamGeo.translate(0, -0.5, 0);
+    const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color:0x65cfff, transparent:true, opacity:0.12, depthWrite:false, side:THREE.DoubleSide }));
+    beam.position.set(0, 59, 0); beam.renderOrder = 5; g.add(beam);
+    const ringGeo = new THREE.RingGeometry(0.55, 0.85, 28); ringGeo.rotateX(-Math.PI/2);
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color:0x8fdcff, transparent:true, opacity:0.5, depthWrite:false, side:THREE.DoubleSide }));
+    ring.renderOrder = 6; g.add(ring);
+    return { g, beam, ring };
+  }
+  G.usH = ultrasonic(-20);
+  G.usL = ultrasonic(20);
+
+  // box elektronik
+  const eb = new THREE.Group(); eb.position.set(24, 2 + 7.5, 16.5); scene.add(eb); G.eb = eb;
+  box(11, 15, 7, M.grey, 0, 0, 0, eb);
+  box(11.3, 15.3, 0.35, M.greyD, 0, 0, 3.5, eb);
+  box(10.4, 14.4, 0.2, M.grey, 0, 0, 3.7, eb);
+  [[-4.8,6.8],[4.8,6.8],[-4.8,-6.8],[4.8,-6.8]].forEach(p => cyl(0.25,0.25,0.2,M.silver,p[0],p[1],3.85,'z',eb,10));
+  box(8.8, 3.4, 0.25, M.black, 0, 3.7, 3.85, eb);
+  G.lcdCanvas = document.createElement('canvas'); G.lcdCanvas.width = 320; G.lcdCanvas.height = 96;
+  G.lcdTex = new THREE.CanvasTexture(G.lcdCanvas);
+  const lcd = new THREE.Mesh(new THREE.PlaneGeometry(8, 2.4), new THREE.MeshBasicMaterial({ map:G.lcdTex }));
+  lcd.position.set(0, 3.7, 3.99); eb.add(lcd);
+  const ledCols = [0x2fd36a, 0xf3c21b, 0xff3b3b];
+  G.leds = ledCols.map((c, i) => {
+    const mat = new THREE.MeshStandardMaterial({ color:0x333333, emissive:c, emissiveIntensity:0, roughness:0.3 });
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), mat);
+    m.position.set(-3.4 + i * 1.6, -1.0, 3.85); eb.add(m);
+    cyl(0.62, 0.62, 0.15, M.black, -3.4 + i * 1.6, -1.0, 3.8, 'z', eb, 16);
+    return mat;
+  });
+  cyl(1.0, 1.0, 0.7, M.black, 3.2, -1.0, 4.1, 'z', eb);
+  cyl(0.18, 0.18, 0.05, M.greyD, 3.2, -1.0, 4.47, 'z', eb, 10);
+  box(1.8, 1.1, 0.5, M.black, 3.2, -4.6, 4.0, eb);
+  box(0.8, 0.8, 0.4, M.red, 3.6, -4.6, 4.3, eb);
+  [-3, 0, 3].forEach(x => cyl(0.55, 0.55, 0.8, M.black, x, 7.9, 0, 'y', eb, 14));
+
+  // float switch
+  G.floatPivot = V(-12, P.tankBottomY + P.floatLow, -14);
+  const clampPt = V(-12, 30.4, -17.2);
+  box(1.2, 2.4, 1.2, M.black, clampPt.x, clampPt.y + 0.2, clampPt.z - 0.2);
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([clampPt, G.floatPivot]);
+  scene.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color:0x111111 })));
+  cyl(0.7, 0.7, 1.6, M.black, G.floatPivot.x, G.floatPivot.y, G.floatPivot.z, 'y');
+  G.floatG = new THREE.Group(); G.floatG.position.copy(G.floatPivot); scene.add(G.floatG);
+  const fl = new THREE.Mesh(new THREE.SphereGeometry(1, 22, 16), M.yellow);
+  fl.scale.set(2.1, 1.05, 1.5); fl.position.set(3.2, 0, 0); fl.castShadow = true; G.floatG.add(fl);
+  cyl(0.18, 0.18, 1.4, M.black, 0.7, 0, 0, 'x', G.floatG, 8);
+
+  // partikel air
+  function points(n, color, size, opacity){
+    const geo = new THREE.BufferGeometry();
+    const arr = new Float32Array(n * 3).fill(-9999);
+    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    const p = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, transparent:true, opacity: opacity == null ? 0.9 : opacity, depthWrite:false }));
+    p.frustumCulled = false; p.renderOrder = 7; scene.add(p);
+    return { p, arr, geo, n };
+  }
+  const hoseP = (curve, n) => { const o = points(n, 0xe9f7ff, 0.55); o.curve = curve; o.len = curve.getLength(); o.t = new Float32Array(n).map((_, i) => i / n); return o; };
+  G.pIn = hoseP(G.inCurve, 46);
+  G.pOut = hoseP(G.outCurve, 46);
+  const chanP = (x0, x1, n) => {
+    const o = points(n, 0xf2fbff, 0.48, 0.85); o.x0 = x0; o.x1 = x1;
+    o.x = new Float32Array(n).map(() => x0 + Math.random() * (x1 - x0));
+    o.yf = new Float32Array(n).map(() => Math.random());
+    o.z = new Float32Array(n).map(() => (Math.random() - 0.5) * 6.6);
+    return o;
+  };
+  G.pUp = chanP(-29.4, -0.6, 150);
+  G.pDn = chanP(0.6, 29.4, 150);
+  const fallP = n => { const o = points(n, 0xd9f1ff, 0.5, 0.85); o.v = new Float32Array(n * 3); o.on = new Uint8Array(n); o.acc = 0; return o; };
+  G.pSpill = fallP(220);
+  G.pStream = fallP(60);
+}
+
+/* ---- kamera orbit ---- */
+const VIEWS = {
+  iso:   { az:-0.62, pol:1.16, r:182, tx:2, ty:27, tz:0 },
+  front: { az:0, pol:1.42, r:168, tx:2, ty:30, tz:0 },
+  side:  { az:Math.PI/2, pol:1.38, r:145, tx:0, ty:30, tz:0 },
+  top:   { az:0, pol:0.12, r:150, tx:2, ty:30, tz:0 }
+};
+const cam = Object.assign({}, VIEWS.iso);
+const goal = Object.assign({}, VIEWS.iso);
+function fitR(r){ if (!has3D) return r; const a = camera.aspect || 1.5; return a < 1 ? r * Math.min(1.9, 1.15 / a) : (a < 1.3 ? r * 1.15 : r); }
+function setView(name){
+  Object.assign(goal, VIEWS[name]); goal.r = fitR(VIEWS[name].r);
+  $$('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+}
+function clearViewPressed(){ $$('[data-view]').forEach(b => b.setAttribute('aria-pressed','false')); }
+function applyCam(){
+  const k = reduceMotion ? 1 : 0.16;
+  for (const key of ['az','pol','r','tx','ty','tz']) cam[key] += (goal[key] - cam[key]) * k;
+  const sp = Math.sin(cam.pol);
+  camera.position.set(cam.tx + cam.r * sp * Math.sin(cam.az), cam.ty + cam.r * Math.cos(cam.pol), cam.tz + cam.r * sp * Math.cos(cam.az));
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
+function setupControls(){
+  const ptrs = new Map(); let pinch = null;
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY, pan: e.button === 2 || e.shiftKey });
+    if (ptrs.size === 2){ const [a,b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x-b.x, a.y-b.y), mx:(a.x+b.x)/2, my:(a.y+b.y)/2 }; }
+  });
+  const pan = (dx, dy) => {
+    const s = goal.r * 0.0016;
+    goal.tx -= Math.cos(goal.az) * dx * s; goal.tz += Math.sin(goal.az) * dx * s;
+    goal.ty = clamp(goal.ty + dy * s, 0, 80);
+  };
+  canvas.addEventListener('pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size === 1){
+      clearViewPressed();
+      if (p.pan) pan(dx, dy);
+      else { goal.az -= dx * 0.0065; goal.pol = clamp(goal.pol - dy * 0.0055, 0.08, 1.55); }
+    } else if (ptrs.size === 2 && pinch){
+      const [a,b] = [...ptrs.values()];
+      const d = Math.hypot(a.x-b.x, a.y-b.y), mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      goal.r = clamp(goal.r * pinch.d / Math.max(d, 1), 55, 320);
+      pan(mx - pinch.mx, my - pinch.my);
+      pinch = { d, mx, my }; clearViewPressed();
+    }
+  });
+  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); goal.r = clamp(goal.r * Math.exp(e.deltaY * 0.0012), 55, 320); clearViewPressed(); }, { passive:false });
+  canvas.addEventListener('keydown', e => {
+    const m = { ArrowLeft:()=>goal.az += 0.12, ArrowRight:()=>goal.az -= 0.12, ArrowUp:()=>goal.pol = clamp(goal.pol - 0.1, 0.08, 1.55),
+      ArrowDown:()=>goal.pol = clamp(goal.pol + 0.1, 0.08, 1.55), '+':()=>goal.r = clamp(goal.r * 0.9, 55, 320), '=':()=>goal.r = clamp(goal.r * 0.9, 55, 320), '-':()=>goal.r = clamp(goal.r * 1.1, 55, 320) };
+    if (m[e.key]){ e.preventDefault(); m[e.key](); clearViewPressed(); }
+  });
+}
+
+/* ---- label 3D ---- */
+const LBL = [
+  { n:1, c:'#2F6FD0', t:'Kotak kontainer', pos:()=>V(-7, 31.6, 18), live:()=>NF1.format(S.vTank/1000) + ' L' },
+  { n:2, c:'#E2701A', t:'Pompa DC 12 V', pos:()=>V(-23, 10.6, 2.6), live:()=>NF1.format(S.Qin*0.06) + ' L/min' },
+  { n:3, c:'#23925A', t:'Flow sensor inlet', pos:()=>V(-35, 49.4, 0), live:()=>NF1.format(R.qi) + ' L/min' },
+  { n:3, c:'#23925A', t:'Flow sensor outlet', pos:()=>V(35, 48.4, 0), live:()=>NF1.format(R.qo) + ' L/min' },
+  { n:4, c:'#E2701A', t:'Saluran akrilik', pos:()=>V(-12, 54.2, 3.9) },
+  { n:5, c:'#CC3333', t:'Soket sumbatan', pos:()=>V(0, 44 + (1 - C.block) * 10 + 15.6, 0), live:()=>Math.round(C.block*100) + '%' },
+  { n:6, c:'#2F6FD0', t:'Ultrasonik hulu', pos:()=>V(-20, 62.4, 0), live:()=>NF1.format(R.lvH) + ' cm' },
+  { n:6, c:'#2F6FD0', t:'Ultrasonik hilir', pos:()=>V(20, 62.4, 0), live:()=>NF1.format(R.lvL) + ' cm' },
+  { n:7, c:'#6B7680', t:'Rel aluminium 2020', pos:()=>V(31, 28, 20.5) },
+  { n:8, c:'#7A4FC0', t:'Box elektronik', pos:()=>V(24, 17.4, 20) },
+  { n:9, c:'#2F6FD0', t:'Selang', pos:()=>V(-38.6, 43, 0) },
+  { n:10, c:'#2B3138', t:'Float switch', pos:()=>G.floatWorld ? G.floatWorld.clone().add(V(0,1.4,0)) : V(-9, 9, -14), live:()=>S.interlock ? 'rendah' : 'aman' }
+];
+function buildLabels(){
+  const host = $('#labels');
+  LBL.forEach(l => {
+    const el = document.createElement('div'); el.className = 'tag';
+    el.style.setProperty('--c', l.c);
+    el.innerHTML = '<b>' + l.n + '</b><span>' + l.t + '</span>' + (l.live ? ' <small></small>' : '');
+    host.appendChild(el); l.el = el; l.sm = el.querySelector('small');
+  });
+}
+const _v = has3D ? new THREE.Vector3() : null;
+function updateLabels(){
+  const host = $('#labels');
+  host.style.display = C.labels ? '' : 'none';
+  if (!C.labels) return;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  LBL.forEach(l => {
+    _v.copy(l.pos()).project(camera);
+    if (_v.z > 1 || _v.z < -1){ l.el.style.display = 'none'; return; }
+    l.el.style.display = '';
+    const x = (_v.x * 0.5 + 0.5) * w, y = (-_v.y * 0.5 + 0.5) * h;
+    l.el.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%, calc(-100% - 7px))';
+  });
+}
+function updateLabelText(){ LBL.forEach(l => { if (l.sm) l.sm.textContent = l.live(); }); }
+
+/* ---- pembaruan visual ---- */
+let lcdLast = '';
+function drawLCD(){
+  const st = S.interlock ? 'POMPA OFF:BAK' : STATES[R.state].lcd;
+  const l1 = 'HU ' + R.lvH.toFixed(1) + ' HI ' + R.lvL.toFixed(1);
+  const key = l1 + st;
+  if (key === lcdLast) return; lcdLast = key;
+  const c = G.lcdCanvas, x = c.getContext('2d');
+  x.fillStyle = '#1d3f8a'; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = '#e6f0ff'; x.font = 'bold 34px "Courier New", monospace'; x.textBaseline = 'top';
+  x.fillText(l1.slice(0, 16), 10, 8);
+  x.fillText(st.slice(0, 16), 10, 52);
+  G.lcdTex.needsUpdate = true;
+}
+
+function updateHoseParticles(o, Q, dt){
+  const on = Q > 1.2;
+  const v = Math.min(70, Q * 0.75) * Math.sqrt(C.speed);
+  for (let i = 0; i < o.n; i++){
+    if (!on){ o.arr[i*3+1] = -9999; continue; }
+    o.t[i] = (o.t[i] + v * dt / o.len) % 1;
+    const p = o.curve.getPointAt(o.t[i]);
+    o.arr[i*3] = p.x; o.arr[i*3+1] = p.y; o.arr[i*3+2] = p.z;
+  }
+  o.geo.attributes.position.needsUpdate = true;
+}
+function updateChanParticles(o, Q, h, dt){
+  const fy = P.floorY;
+  const v = Math.min(45, (Q / (P.inW * Math.max(h, 0.4))) * 3.2) * Math.sqrt(C.speed);
+  for (let i = 0; i < o.n; i++){
+    if (h < 0.15){ o.arr[i*3+1] = -9999; continue; }
+    o.x[i] += v * dt * (0.75 + o.yf[i] * 0.5);
+    if (o.x[i] > o.x1){ o.x[i] = o.x0 + Math.random() * 1.2; o.yf[i] = Math.random(); }
+    o.arr[i*3] = o.x[i];
+    o.arr[i*3+1] = fy + 0.15 + o.yf[i] * Math.max(0, h - 0.3);
+    o.arr[i*3+2] = o.z[i];
+  }
+  o.geo.attributes.position.needsUpdate = true;
+}
+function tankSurfaceY(){ return P.tankBottomY + S.vTank / P.tankArea; }
+function updateFalling(o, rate, spawnFn, dt){
+  o.acc += rate * dt;
+  const g = 520;
+  for (let i = 0; i < o.n; i++){
+    if (!o.on[i]){
+      if (o.acc >= 1){ o.acc -= 1; o.on[i] = 1; spawnFn(o, i); }
+      else { o.arr[i*3+1] = -9999; continue; }
+    }
+    o.v[i*3+1] -= g * dt;
+    o.arr[i*3] += o.v[i*3] * dt; o.arr[i*3+1] += o.v[i*3+1] * dt; o.arr[i*3+2] += o.v[i*3+2] * dt;
+    const x = o.arr[i*3], z = o.arr[i*3+2];
+    const inTank = x > P.tankX - P.tankW/2 + 0.4 && x < P.tankX + P.tankW/2 - 0.4 && Math.abs(z) < P.tankD/2 - 0.4;
+    const floor = inTank ? tankSurfaceY() : 2.1;
+    if (o.arr[i*3+1] <= floor){ o.on[i] = 0; o.arr[i*3+1] = -9999; }
+  }
+  if (o.acc > 4) o.acc = 4;
+  o.geo.attributes.position.needsUpdate = true;
+}
+function spawnSpill(o, i){
+  const up = Math.random() < S.spill1 / Math.max(1e-6, S.spill1 + S.spill2);
+  const side = Math.random() < 0.5 ? -1 : 1;
+  o.arr[i*3] = up ? -28.5 + Math.random() * 27 : 1.5 + Math.random() * 27;
+  o.arr[i*3+1] = P.floorY + 10.1;
+  o.arr[i*3+2] = side * 3.95;
+  o.v[i*3] = (Math.random() - 0.5) * 3; o.v[i*3+1] = 4 + Math.random() * 6; o.v[i*3+2] = side * (7 + Math.random() * 7);
+}
+function spawnStream(o, i){
+  o.arr[i*3] = 10.5 + (Math.random() - 0.5) * 0.6; o.arr[i*3+1] = 24.8; o.arr[i*3+2] = -7 + (Math.random() - 0.5) * 0.6;
+  o.v[i*3] = (Math.random() - 0.5) * 2; o.v[i*3+1] = -10 - Math.random() * 10; o.v[i*3+2] = (Math.random() - 0.5) * 2;
+}
+
+function updateVisuals(dt, time){
+  const fy = P.floorY;
+  G.upW.scale.y = Math.max(S.h1, 0.001); G.upW.visible = S.h1 > 0.03;
+  G.dnW.scale.y = Math.max(S.h2, 0.001); G.dnW.visible = S.h2 > 0.03;
+  const hT = S.vTank / P.tankArea;
+  G.tankWater.scale.y = Math.max(hT, 0.001); G.tankWater.visible = hT > 0.05;
+  G.gate.position.y = fy + (1 - C.block) * 10;
+
+  // ultrasonik
+  [[G.usH, S.h1, 0], [G.usL, S.h2, 0.5]].forEach(([u, h, off]) => {
+    const dist = Math.max(0.5, P.usMount - h);
+    u.beam.visible = u.ring.visible = C.beams;
+    u.beam.scale.y = dist;
+    const ph = reduceMotion ? 0.5 : ((time * 1.4 + off) % 1);
+    u.ring.position.y = 59 - ph * dist;
+    const sc = 1 + ph * 2.2; u.ring.scale.set(sc, 1, sc);
+    u.ring.material.opacity = reduceMotion ? 0.25 : 0.55 * (1 - ph);
+  });
+
+  // float switch
+  const wy = P.tankBottomY + hT, L = 3.2;
+  const s = clamp((wy - G.floatPivot.y) / L, Math.sin(-1.4), Math.sin(0.62));
+  const phi = Math.asin(s);
+  G.floatG.rotation.z = phi;
+  G.floatWorld = V(G.floatPivot.x + Math.cos(phi) * L, G.floatPivot.y + Math.sin(phi) * L, G.floatPivot.z);
+
+  // pompa bergetar
+  G.pump.position.x = -23 + (S.Qin > 3 && !reduceMotion ? Math.sin(time * 95) * 0.035 : 0);
+
+  // rotor flow sensor
+  G.fsIn.blade.rotation.y += R.hzI * dt * 0.6;
+  G.fsOut.blade.rotation.y += R.hzO * dt * 0.6;
+
+  // LED
+  const red = R.state === 'total' || R.overflow || S.interlock;
+  const yel = R.state === 'partial' || R.state === 'inflow' || R.verifying;
+  const grn = !red && (R.state === 'normal' || R.state === 'inflow' || R.state === 'idle');
+  const blink = Math.floor(time * 2.5) % 2 === 0;
+  G.leds[0].emissiveIntensity = grn ? 1.3 : 0;
+  G.leds[1].emissiveIntensity = yel ? 1.3 : 0;
+  G.leds[2].emissiveIntensity = red ? (blink ? 1.6 : 0.15) : 0;
+
+  // partikel
+  updateHoseParticles(G.pIn, S.Qin, dt);
+  updateHoseParticles(G.pOut, S.Qout, dt);
+  updateChanParticles(G.pUp, Math.max(0, S.Q12), S.h1, dt);
+  updateChanParticles(G.pDn, S.Qout, S.h2, dt);
+  updateFalling(G.pSpill, (S.spill1 + S.spill2) > 0.8 ? Math.min(260, (S.spill1 + S.spill2) * 4) : 0, spawnSpill, dt);
+  updateFalling(G.pStream, S.Qout > 1.5 ? Math.min(120, S.Qout * 1.6) : 0, spawnStream, dt);
+}
+
+/* ================= UI ================= */
+function bindUI(){
+  const duty = $('#duty'), block = $('#block');
+  duty.addEventListener('input', () => { C.duty = +duty.value; syncControls(); });
+  block.addEventListener('input', () => { C.block = +block.value / 100; syncControls(); });
+  $$('[data-block]').forEach(b => b.addEventListener('click', () => { C.block = +b.dataset.block / 100; syncControls(); log('Soket sumbatan diatur ke ' + b.dataset.block + '%.'); }));
+  $('#pumpBtn').addEventListener('click', () => { C.pumpOn = !C.pumpOn; syncControls(); log(C.pumpOn ? 'Pompa dinyalakan.' : 'Pompa dimatikan manual.'); });
+  $('#drain').addEventListener('click', () => { S.vTank = Math.max(0, S.vTank - 5000); log('Bak dikuras 5 L.'); updateUI(true); });
+  $('#fill').addEventListener('click', () => { S.vTank = Math.min(P.tankArea * P.tankH, S.vTank + 5000); log('Bak ditambah 5 L.'); updateUI(true); });
+  const SC = { normal:[45,0,'Normal'], inflow:[100,0,'Aliran masuk besar'], partial:[45,60,'Tersumbat sebagian'], total:[45,100,'Tersumbat total'] };
+  $$('[data-scen]').forEach(b => b.addEventListener('click', () => {
+    const s = SC[b.dataset.scen]; C.duty = s[0]; C.block = s[1] / 100; C.pumpOn = true; syncControls(); log('Skenario: ' + s[2] + '.');
+  }));
+  $$('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  $$('[data-speed]').forEach(b => b.addEventListener('click', () => {
+    C.speed = +b.dataset.speed; $$('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  $('#pause').addEventListener('click', e => { C.paused = !C.paused; e.currentTarget.textContent = C.paused ? 'Lanjutkan' : 'Jeda'; e.currentTarget.setAttribute('aria-pressed', String(C.paused)); });
+  $('#reset').addEventListener('click', () => { resetSim(); log('Simulasi diulang. Bak berisi 25 L.'); updateUI(true); });
+  $('#tglLabels').addEventListener('click', e => { C.labels = !C.labels; e.currentTarget.setAttribute('aria-pressed', String(C.labels)); });
+  $('#tglBeams').addEventListener('click', e => { C.beams = !C.beams; e.currentTarget.setAttribute('aria-pressed', String(C.beams)); });
+  $('#buzz').addEventListener('change', e => { C.buzzer = e.target.checked; if (C.buzzer) initAudio(); });
+}
+function syncControls(){
+  $('#duty').value = C.duty; $('#dutyOut').textContent = C.duty + '%';
+  $('#block').value = Math.round(C.block * 100); $('#blockOut').textContent = Math.round(C.block * 100) + '%';
+  $$('[data-block]').forEach(b => b.setAttribute('aria-pressed', String(Math.round(C.block * 100) === +b.dataset.block)));
+  const pb = $('#pumpBtn'); pb.textContent = C.pumpOn ? 'Pompa menyala' : 'Pompa mati'; pb.setAttribute('aria-pressed', String(C.pumpOn));
+  const b = Math.round(C.block * 100);
+  const map = { normal:C.duty === 45 && b === 0, inflow:C.duty === 100 && b === 0, partial:C.duty === 45 && b === 60, total:C.duty === 45 && b === 100 };
+  $$('[data-scen]').forEach(x => x.setAttribute('aria-pressed', String(C.pumpOn && !!map[x.dataset.scen])));
+}
+
+let pal = {};
+function readPalette(){
+  pal = { ink:cssVar('--ink'), ink2:cssVar('--ink-2'), line:cssVar('--line'), water:cssVar('--water'), water2:cssVar('--water-2'),
+    gate:cssVar('--gate'), flow:cssVar('--flow'), scene:cssVar('--scene'), panel:cssVar('--panel') };
+  if (has3D) scene.background = new THREE.Color(pal.scene || '#dce3e7');
+}
+
+function pushChart(){
+  chartBuf.push({ t:S.t, h1:R.lvH, h2:R.lvL, qi:R.qi, qo:R.qo });
+  while (chartBuf.length && chartBuf[0].t < S.t - 120) chartBuf.shift();
+}
+function drawChart(){
+  const c = $('#chart'), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = c.clientWidth, H = c.clientHeight;
+  if (!W) return;
+  if (c.width !== Math.round(W * dpr)){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+  const L = 30, Rr = 30, T = 8, B = 20, pw = W - L - Rr, ph = H - T - B;
+  x.font = '11px Barlow, system-ui, sans-serif'; x.textBaseline = 'middle';
+  for (let i = 0; i <= 4; i++){
+    const y = T + ph - ph * i / 4;
+    x.strokeStyle = pal.line; x.lineWidth = 1; x.beginPath(); x.moveTo(L, y + 0.5); x.lineTo(L + pw, y + 0.5); x.stroke();
+    x.fillStyle = pal.ink2; x.textAlign = 'right'; x.fillText(NF1.format(i * 2.5).replace(',0',''), L - 5, y);
+    x.textAlign = 'left'; x.fillText(NF1.format(i * 1.5).replace(',0',''), L + pw + 5, y);
+  }
+  x.textAlign = 'center'; x.textBaseline = 'top';
+  x.fillText('cm', L - 14, H - 14); x.fillText('L/min', L + pw + 12, H - 14);
+  x.fillText('−120 s', L + 18, H - 14); x.fillText('sekarang', L + pw - 22, H - 14);
+  const t0 = S.t - 120;
+  const px = t => L + (t - t0) / 120 * pw;
+  const py = (v, max) => T + ph - clamp(v / max, 0, 1.02) * ph;
+  const line = (key, max, col, w, dash) => {
+    if (chartBuf.length < 2) return;
+    x.strokeStyle = col; x.lineWidth = w; x.setLineDash(dash || []); x.beginPath();
+    chartBuf.forEach((d, i) => { const X = px(d.t), Y = py(d[key], max); i ? x.lineTo(X, Y) : x.moveTo(X, Y); });
+    x.stroke(); x.setLineDash([]);
+  };
+  line('qi', 6, pal.flow, 1.5, [4, 3]);
+  line('qo', 6, pal.gate, 1.8);
+  line('h2', 10, pal.water2, 2.2);
+  line('h1', 10, pal.water, 2.4);
+}
+
+let audioCtx = null, lastBeep = 0;
+function initAudio(){ try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume && audioCtx.resume(); } catch(e){ audioCtx = null; } }
+function beep(){
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.frequency.value = 2600; o.type = 'square'; g.gain.value = 0.035;
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.18);
+}
+
+function updateUI(){
+  const st = STATES[R.state];
+  const diag = $('#diag');
+  diag.style.setProperty('--state', cssVar(st.lamp));
+  $('#stTitle').textContent = S.interlock && R.state === 'idle' ? 'Pompa dimatikan float switch' : st.title;
+  $('#stReason').textContent = reasonText();
+  const chips = [];
+  if (R.verifying && R.state !== 'partial' && R.state !== 'total') chips.push(['warn', 'Memverifikasi sumbatan ' + NF1.format(R.blockTimer) + ' / 2 s']);
+  if (R.overflow) chips.push(['bad', 'Air meluap']);
+  else if (R.lvH >= 9 || R.lvL >= 9) chips.push(['warn', 'Hampir meluap']);
+  if (S.interlock) chips.push(['bad', 'Interlock float switch']);
+  if (!C.pumpOn) chips.push(['', 'Pompa dimatikan manual']);
+  $('#chips').innerHTML = chips.map(c => '<span class="chip ' + c[0] + '"></span>').join('');
+  $$('#chips .chip').forEach((el, i) => el.textContent = chips[i][1]);
+
+  $('#gH').innerHTML = NF1.format(R.lvH) + '<small>cm</small>';
+  $('#gL').innerHTML = NF1.format(R.lvL) + '<small>cm</small>';
+  $('#gHs').textContent = 'jarak ' + NF1.format(R.dH) + ' cm';
+  $('#gLs').textContent = 'jarak ' + NF1.format(R.dL) + ' cm';
+  $('#gI').innerHTML = NF2.format(R.qi) + '<small>L/min</small>';
+  $('#gO').innerHTML = NF2.format(R.qo) + '<small>L/min</small>';
+  $('#gIs').textContent = NF1.format(R.hzI) + ' Hz' + (R.qi === 0 && S.Qin > 1 ? ', di bawah batas ukur' : '');
+  $('#gOs').textContent = NF1.format(R.hzO) + ' Hz' + (R.qo === 0 && S.Qout > 1 ? ', di bawah batas ukur' : '');
+  $('#mDh').textContent = NF1.format(R.dh) + ' cm';
+  const fDh = $('#fDh'); fDh.style.width = clamp(R.dh / 5, 0, 1) * 100 + '%';
+  fDh.style.background = R.dh >= P.dhTh ? cssVar('--warn') : cssVar('--water');
+  $('#mR').textContent = R.ratio == null ? 'tidak terukur' : Math.round(R.ratio * 100) + '%';
+  $('#fR').style.width = R.ratio == null ? '0%' : clamp(R.ratio / 1.2, 0, 1) * 100 + '%';
+
+  $('#pumpQ').textContent = NF1.format(S.Qin * 0.06) + ' L/min';
+  const hT = S.vTank / P.tankArea;
+  $('#tankV').textContent = NF1.format(S.vTank / 1000) + ' L';
+  $('#tankH').textContent = NF1.format(hT) + ' cm';
+  $('#drain').disabled = S.vTank < 5000;
+  $('#fill').disabled = S.vTank > P.tankArea * P.tankH - 5000;
+  $('#clock').textContent = mmss(S.t);
+
+  const ruleOn = {
+    interlock: S.interlock,
+    block: R.state === 'partial' || R.state === 'total' || R.verifying,
+    total: R.state === 'total',
+    inflow: R.state === 'inflow',
+    normal: R.state === 'normal'
+  };
+  const ruleCol = { interlock:'--bad', block:'--warn', total:'--bad', inflow:'--water', normal:'--ok' };
+  $$('.rules li').forEach(li => { const k = li.dataset.r; li.classList.toggle('on', !!ruleOn[k]); li.style.setProperty('--c', cssVar(ruleCol[k])); });
+
+  if (has3D){ updateLabelText(); drawLCD(); }
+  drawChart();
+
+  const alarm = R.state === 'total' || R.overflow || S.interlock;
+  const now = performance.now();
+  if (C.buzzer && alarm && !C.paused && now - lastBeep > 850){ beep(); lastBeep = now; }
+}
+
+/* ================= Loop ================= */
+function resize(){
+  if (!has3D) return;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+
+let last = performance.now(), lastUI = 0;
+const acc = { s:0, d:0, c:0 };
+function frame(now){
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!C.paused){
+    let simDt = dt * C.speed;
+    while (simDt > 1e-6){
+      const h = Math.min(0.05, simDt);
+      physics(h); simDt -= h;
+      acc.s += h; acc.d += h; acc.c += h;
+      while (acc.s >= 0.1){ acc.s -= 0.1; sample(); }
+      while (acc.d >= 0.5){ acc.d -= 0.5; detect(); }
+      while (acc.c >= 0.25){ acc.c -= 0.25; pushChart(); }
+    }
+  }
+  if (has3D){
+    applyCam();
+    updateVisuals(C.paused ? 0 : dt, now / 1000);
+    renderer.render(scene, camera);
+    updateLabels();
+  }
+  if (now - lastUI > 100){ updateUI(); lastUI = now; }
+  requestAnimationFrame(frame);
+}
+
+/* ================= Mulai ================= */
+resetSim();
+bindUI();
+syncControls();
+readPalette();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readPalette(); });
+if (has3D){
+  buildScene();
+  buildLabels();
+  setupControls();
+  readPalette();
+  new ResizeObserver(() => { resize(); }).observe(canvas);
+  resize();
+  if (canvas.clientWidth < 620){ C.labels = false; $('#tglLabels').setAttribute('aria-pressed','false'); }
+  setView('iso');
+  Object.assign(cam, goal);
+}
+log('Simulasi dimulai. Pompa 45%, soket dilepas, bak berisi 25 L.');
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

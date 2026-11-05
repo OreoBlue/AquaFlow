@@ -1,0 +1,1 @@
+{"hosting":{"public":"dist","ignore":["firebase.json","**/.*","**/node_modules/**"],"headers":[{"source":"**/*.js","headers":[{"key":"Cache-Control","value":"no-cache"}]}]},"database":{"rules":"database.rules.locked.json"}}

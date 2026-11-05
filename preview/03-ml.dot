@@ -1,0 +1,18 @@
+digraph G {
+  graph [fontname="DejaVu Sans",rankdir=LR,bgcolor="#f6f9fc",pad=.35,nodesep=.35,ranksep=.65,label="AquaFlow • Kontrak Training → Inferensi",labelloc=t,fontsize=24,fontcolor="#15364b"];
+  node [fontname="DejaVu Sans",style="rounded,filled",shape=box,fillcolor="#ffffff",color="#9bb6c4",fontcolor="#1b3445",fontsize=12,margin=".2,.13"];
+  edge [color="#30768b",penwidth=1.7,arrowsize=.72,fontname="DejaVu Sans",fontsize=10];
+  train[label="DATA PRIMER + LABEL\nTiga kelas sumbatan",fillcolor="#dceaf2"];
+  validate[label="Training + evaluasi\nvs baseline",fillcolor="#e2edff"];
+  model[label="joblib + model_contract.json\nUrutan fitur final",fillcolor="#d9f7f1"];
+  sensor[label="Data RTDB terbaru\n1 sesi",fillcolor="#dceaf2"];
+  qa[shape=diamond,label="Valid?",fillcolor="#fff2ce"];
+  build[label="Windowing + feature extraction\nIDENTIK training",fillcolor="#e2edff"];
+  infer[label="model.predict()",fillcolor="#d9f7f1"];
+  out[label="Prediksi + sourceTimestamp\n+ modelVersion",fillcolor="#fff2ce"];
+  ui[label="Firebase → UI",fillcolor="#dceaf2"];
+  drop[label="Tahan inferensi\nStatus tidak valid",fillcolor="#ffebeb"];
+  train->validate->model->infer;
+  sensor->qa;qa->build[label="Ya"];qa->drop[label="Tidak"];
+  build->infer->out->ui;
+}

@@ -1,0 +1,2 @@
+# Referensi asli kelompok
+Berkas dalam folder ini adalah salinan **tidak diedit** dari bahan yang diunggah pada percakapan. Draf `Draf-Proposal-ML-Bocor-Perlu-Revisi.docx` menggunakan topik kebocoran yang **berbeda** dengan target sumbatan di proposal IoT. Gunakan untuk telaah metode, jangan otomatis memakainya sebagai target ML final. Simulasi 3D adalah prototype visual terpisah, bukan firmware ESP32 atau pembacaan sensor real.

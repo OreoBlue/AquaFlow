@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeReading,normalizePrediction,presentCondition,diagnose} from '../dist/data-model.js';
+const now=Date.now();
+const reading={timestamp:now,inletLpm:4.8,outletLpm:4.6,upstreamCm:5.4,downstreamCm:5.1,pumpOn:true,floatSafe:true};
+const prediction={timestamp:now,sourceTimestamp:now,label:'NORMAL',source:'model',modelVersion:'v1',confidence:.91};
+test('rejects invalid sensor',()=>{assert.equal(normalizeReading({...reading,upstreamCm:null}),null);assert.equal(normalizeReading({...reading,pumpOn:'true'}),null);assert.equal(normalizeReading({...reading,inletLpm:100}),null);});
+test('live model accepted',()=>{const p=normalizePrediction(prediction);assert.equal(p.label,'NORMAL');assert.equal(presentCondition(reading,p,{source:'firebase',now}).kind,'NORMAL');});
+test('prevents demo prediction from masquerading as trained model',()=>{assert.equal(presentCondition(reading,{...prediction,source:'demo'},{source:'firebase',now}).kind,'awaiting');});
+test('stale sensor overrides model result',()=>{assert.equal(presentCondition({...reading,timestamp:now-120000},prediction,{source:'firebase',now}).kind,'stale');});
+test('float safety overrides model result',()=>{assert.equal(presentCondition({...reading,floatSafe:false},prediction,{source:'firebase',now}).kind,'low');});
+test('missing model does not become threshold-based ML',()=>{assert.equal(presentCondition(reading,null,{source:'firebase',now}).kind,'awaiting');});
+test('baseline remains independent',()=>{const d=diagnose(reading,{flowLossPercent:20,heightGapCm:1.5});assert.equal(d.ruleBlocked,false);assert.ok(d.ratio>95);});

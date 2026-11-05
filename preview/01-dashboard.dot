@@ -1,0 +1,21 @@
+digraph G {
+  graph [fontname="DejaVu Sans",rankdir=LR,bgcolor="#f6f9fc",pad=.35,nodesep=.3,ranksep=.5,label="AquaFlow • Alur dashboard",labelloc=t,fontsize=24,fontcolor="#15364b"];
+  node [fontname="DejaVu Sans",style="rounded,filled",shape=box,fillcolor="#ffffff",color="#9bb6c4",fontcolor="#1b3445",fontsize=12,margin=".18,.12"];
+  edge [color="#3b788e",penwidth=1.7,arrowsize=.7,fontname="DejaVu Sans",fontsize=10];
+  start[label="Buka AquaFlow",fillcolor="#D9F7F1"];
+  source[shape=diamond,label="Sumber data?",fillcolor="#dceaf2"];
+  demo[label="Simulasi (bukan ML asli)",fillcolor="#fff2ce"];
+  live[label="Firebase + Auth\nTelemetry & Prediksi",fillcolor="#e2edff"];
+  valid[shape=diamond,label="Data valid & baru?",fillcolor="#dceaf2"];
+  error[label="Status invalid / stale\nJangan tampilkan prediksi usang",fillcolor="#ffebeb"];
+  safe[shape=diamond,label="Interlock atau pompa mati?",fillcolor="#dceaf2"];
+  safety[label="Status pengaman / siaga",fillcolor="#ffebeb"];
+  p[shape=diamond,label="Prediksi ML cocok?",fillcolor="#dceaf2"];
+  result[label="NORMAL / ALIRAN TINGGI /\nTERSUMBAT",fillcolor="#d9f7f1"];
+  wait[label="ML belum tersedia",fillcolor="#fff2ce"];
+  ui[label="Ringkasan • Grafik • Riwayat\nCSV • Status perangkat",fillcolor="#dceaf2"];
+  start->source;source->demo[label="DEMO"];source->live[label="LIVE"];
+  demo->valid;live->valid; valid->error[label="Tidak"];valid->safe[label="Ya"];
+  safe->safety[label="Ya"];safe->p[label="Tidak"];p->result[label="Ya"];p->wait[label="Tidak"];
+  {error safety result wait}->ui;
+}
